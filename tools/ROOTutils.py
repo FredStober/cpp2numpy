@@ -85,7 +85,21 @@ class TH2DWrapper(object):
 			xaxis.GetLowEdge(self.cache_x_low)
 			self.cache_x_low[-1] = xaxis.GetBinUpEdge(xaxis.GetNbins())
 		return self.cache_x_low
+	
+	def x(self):
+		if not hasattr(self, "cache_x"):
+			xaxis = self.histo.GetXaxis()
+			self.cache_x = numpy.zeros(xaxis.GetNbins(), dtype = numpy.double)
+			xaxis.GetCenter(self.cache_x)
+			#self.cache_x_low[-1] = xaxis.GetBinUpEdge(xaxis.GetNbins())
+		return self.cache_x
 
+	# Return x error
+	def xe(self):
+		if not hasattr(self, "cache_xe"):
+			self.cache_xe = map(lambda (low, c): c - low, zip(self.x_low()[:-1], self.x()))
+		return self.cache_xe	
+	
 	# Return lower y bounds
 	def y_low(self):
 		if not hasattr(self, "cache_y_low"):
@@ -94,6 +108,20 @@ class TH2DWrapper(object):
 			yaxis.GetLowEdge(self.cache_y_low)
 			self.cache_y_low[-1] = yaxis.GetBinUpEdge(yaxis.GetNbins())
 		return self.cache_y_low
+
+	def y(self):
+		if not hasattr(self, "cache_y"):
+			yaxis = self.histo.GetYaxis()
+			#print yaxis.GetNbins(), " yaxis.GetNbins() yaxis.GetNbins() yaxis.GetNbins() yaxis.GetNbins() yaxis.GetNbins()"
+			self.cache_y = numpy.zeros(yaxis.GetNbins(), dtype = numpy.double)
+			yaxis.GetCenter(self.cache_y)
+		return self.cache_y
+
+	# Return y error
+	def ye(self):
+		if not hasattr(self, "cache_ye"):
+			self.cache_ye = map(lambda (low, c): c - low, zip(self.y_low()[:-1], self.y()))
+		return self.cache_ye	
 
 	# Return z
 	def z(self, limits = False):
@@ -141,6 +169,25 @@ class TProfileWrapper(TH1DWrapper):
 			self.cache_ye_uflow = self.cache_ye[0]
 			self.cache_ye_oflow = self.cache_ye[-1]
 		return self.cache_ye[1:-1]
+
+	#return x
+	def x(self, limits = False):
+		if not hasattr(self, "cache_x"):
+			xaxis = self.histo.GetXaxis()
+			self.cache_x = numpy.zeros(xaxis.GetNbins() + 2, dtype = numpy.double)
+			xaxis.GetCenter(self.cache_x[1:-1])
+			self.cache_x[0] = xaxis.GetBinLowEdge(1)
+			self.cache_x[-1] = xaxis.GetBinUpEdge(xaxis.GetNbins())
+		if limits:
+			return self.cache_x
+		else:
+			return self.cache_x[1:-1]
+
+	# Return x error
+	def xe(self):
+		if not hasattr(self, "cache_xe"):
+			self.cache_xe = map(lambda (low, c): c - low, zip(self.x_low()[:-1], self.x()))
+		return self.cache_xe
 
 
 class TGraphWrapper():
