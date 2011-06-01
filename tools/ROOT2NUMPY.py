@@ -57,7 +57,7 @@ def main(args):
 				xe[plot] = histo.xe()
 				y[plot] = histo.y()
 				ye[plot] = histo.ye()
-			elif objclass.startswith("TGraph"):
+			elif objclass.startswith("TGraph") or objclass.endswith('Graph'):
 				histo = ROOTutils.TGraphWrapper(obj)
 				x[plot] = histo.x()
 				xe[plot] = [histo.xel(), histo.xeh()]
