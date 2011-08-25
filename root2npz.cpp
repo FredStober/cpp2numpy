@@ -87,8 +87,8 @@ void TNumpy::Add(TGraph *histo)
 	shape[0] = 2;
 	shape[1] = N;
 
-	const double *exl = self.histo.GetEXlow()
-	const double *exh = self.histo.GetEXhigh()
+	const double *exl = histo->GetEXlow();
+	const double *exh = histo->GetEXhigh();
 	vector<double> xe(2 * N);
 	for (int i = 0; i < N; ++i)
 		xe[i] = exl[i];
@@ -96,15 +96,15 @@ void TNumpy::Add(TGraph *histo)
 		xe[i + N] = exl[i];
 	backend.add_array(mapName("xe", histo), shape, &(xe[0]));
 
-	const double *eyl = self.histo.GetEYlow()
-	const double *eyh = self.histo.GetEYhigh()
+	const double *eyl = histo->GetEYlow();
+	const double *eyh = histo->GetEYhigh();
 	vector<double> ye(2 * N);
 	for (int i = 0; i < N; ++i)
 		ye[i] = eyl[i];
 	for (int i = 0; i < N; ++i)
 		ye[i + N] = eyl[i];
 	backend.add_array(mapName("ye", histo), shape, &(ye[0]));
-)
+}
 
 void TNumpy::Write()
 {
