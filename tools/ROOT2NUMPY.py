@@ -38,10 +38,9 @@ def main(args):
 				objclass = "Not found"
 
 			if objclass.startswith("TH1"):
-				continue
 				histo = ROOTutils.TH1DWrapper(obj)
 				x[plot] = histo.x()
-				xe[plot] =histo.xe()
+				xe[plot] = histo.xe()
 				y[plot] = histo.y()
 				ye[plot] = histo.ye()
 			elif objclass.startswith("TH2"):
@@ -50,7 +49,6 @@ def main(args):
 				xe[plot] = histo.xe()
 				y[plot] = histo.y_low()
 				ye[plot] = histo.z()
-				
 			elif objclass.startswith("TProfile"):
 				histo = ROOTutils.TProfileWrapper(obj)
 				x[plot] = histo.x()

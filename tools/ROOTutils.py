@@ -85,7 +85,7 @@ class TH2DWrapper(object):
 			xaxis.GetLowEdge(self.cache_x_low)
 			self.cache_x_low[-1] = xaxis.GetBinUpEdge(xaxis.GetNbins())
 		return self.cache_x_low
-	
+
 	def x(self):
 		if not hasattr(self, "cache_x"):
 			xaxis = self.histo.GetXaxis()
@@ -98,8 +98,8 @@ class TH2DWrapper(object):
 	def xe(self):
 		if not hasattr(self, "cache_xe"):
 			self.cache_xe = map(lambda (low, c): c - low, zip(self.x_low()[:-1], self.x()))
-		return self.cache_xe	
-	
+		return self.cache_xe
+
 	# Return lower y bounds
 	def y_low(self):
 		if not hasattr(self, "cache_y_low"):
@@ -165,7 +165,7 @@ class TProfileWrapper(TH1DWrapper):
 			xaxis = self.histo.GetXaxis()
 			self.cache_ye = numpy.zeros(xaxis.GetNbins() + 2)
 			for i in range(self.histo.GetSize()):
-				self.cache_ye[i]=self.histo.GetBinError(i)
+				self.cache_ye[i] = self.histo.GetBinError(i)
 			self.cache_ye_uflow = self.cache_ye[0]
 			self.cache_ye_oflow = self.cache_ye[-1]
 		return self.cache_ye[1:-1]
@@ -230,3 +230,35 @@ class TGraphWrapper():
 		if not hasattr(self, "cache_yel"):
 			self.cache_yel = numpy.ndarray(self.histo.GetN(), dtype = numpy.double, buffer = self.histo.GetEYlow())
 		return self.cache_yel
+
+
+def writeHisto(rfn, fn, plot):
+	return writeHistoEx(ROOT.TFile(rfn), fn, plot)
+
+
+def writeHistoEx(rfile, fn, plot):
+	try:
+		os.makedirs(os.path.dirname(fn))
+	except:
+		pass
+	obj = rfile.Get(plot.replace(".npz", ""))
+	try:
+		objclass = obj.ClassName()
+	except:
+		objclass = "Not found"
+	if objclass.startswith("TH1"):
+		histo = TH1DWrapper(obj)
+		numpy.savez(fn, x=histo.x(), xe=histo.xe(), y=histo.y(), ye=histo.ye())
+	elif objclass.startswith("TH2"):
+		histo = TH2DWrapper(obj)
+		numpy.savez(fn, x=histo.x_low(), y=histo.y_low(), z=histo.z())
+	elif objclass.startswith("TProfile"):
+		obj.SetErrorOption("S")
+		histo = TProfileWrapper(obj)
+		numpy.savez(fn, x=histo.x(), xe=histo.xe(), y=histo.y(), ye=histo.ye())
+	elif objclass.startswith("TGraph"):
+		histo = TGraphWrapper(obj)
+		numpy.savez(fn, x=histo.x(), xe=[histo.xel(), histo.xeh()],
+			y=histo.y(), ye=[histo.yel(), histo.yeh()])
+	else:
+		print "Unsupported object: %s (%s)" % (plot, objclass)
