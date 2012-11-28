@@ -67,7 +67,7 @@ class TH1DWrapper(object):
 			xaxis = self.histo.GetXaxis()
 			self.cache_ye = numpy.zeros(xaxis.GetNbins() + 2)
 			for i in range(self.histo.GetSize()):
-				self.cache_ye[i]=self.histo.GetBinError(i)
+				self.cache_ye[i] = self.histo.GetBinError(i)
 			self.cache_ye_uflow = self.cache_ye[0]
 			self.cache_ye_oflow = self.cache_ye[-1]
 		return self.cache_ye[1:-1]
@@ -121,7 +121,7 @@ class TH2DWrapper(object):
 	def ye(self):
 		if not hasattr(self, "cache_ye"):
 			self.cache_ye = map(lambda (low, c): c - low, zip(self.y_low()[:-1], self.y()))
-		return self.cache_ye	
+		return self.cache_ye
 
 	# Return z
 	def z(self, limits = False):
@@ -132,6 +132,19 @@ class TH2DWrapper(object):
 			return self.cache_z_shaped
 		else:
 			return self.cache_z_shaped[1:-1,1:-1]
+
+
+	# Return z
+	def ze(self, limits = False):
+		if not hasattr(self, "cache_ze"):
+			self.cache_ze = numpy.zeros((len(self.y_low()) + 1, len(self.x_low()) + 1))
+			for x in range(len(self.x_low())):
+				for y in range(len(self.y_low())):
+					self.cache_ze[y, x] = self.histo.GetBinError(self.histo.GetBin(x, y))
+		if limits:
+			return self.cache_ze
+		else:
+			return self.cache_ze[1:-1,1:-1]
 
 
 class TProfileWrapper(TH1DWrapper):
@@ -196,7 +209,6 @@ class TGraphWrapper():
 
 	# Return x
 	def x(self):
-		print self.histo
 		if not hasattr(self, "cache_x"):
 			self.cache_x = numpy.ndarray(self.histo.GetN(), dtype = numpy.double, buffer = self.histo.GetX())
 		return self.cache_x
@@ -235,6 +247,42 @@ class TGraphWrapper():
 def writeHisto(rfn, fn, plot):
 	return writeHistoEx(ROOT.TFile(rfn), fn, plot)
 
+def rootobj2dict(obj, plot):
+	try:
+		objclass = obj.ClassName()
+	except:
+		objclass = "Not found"
+	if objclass.startswith("TH1"):
+		histo = TH1DWrapper(obj)
+		return {'x': histo.x(), 'xe': histo.xe(), 'y': histo.y(), 'ye': histo.ye()}
+	elif objclass.startswith("TH2"):
+		histo = TH2DWrapper(obj)
+		return {'x': histo.x(), 'y': histo.y(), 'z': histo.z(),
+			'xe': histo.xe(), 'ye': histo.ye(), 'ze': histo.ze()}
+	elif objclass.startswith("TProfile"):
+		obj.SetErrorOption("S")
+		histo = TProfileWrapper(obj)
+		return {'x': histo.x(), 'xe': histo.xe(), 'y': histo.y(), 'ye': histo.ye()}
+	elif objclass.startswith("TGraph"):
+		histo = TGraphWrapper(obj)
+		return {'x': histo.x(), 'xe': [histo.xel(), histo.xeh()],
+			'y': histo.y(), 'ye': [histo.yel(), histo.yeh()]}
+	else:
+		s = "==>> Unsupported object: %s (%s) <<==" % (plot, objclass)
+		print "=" * len(s)
+		print s
+		print "=" * len(s)
+		return {}
+
+def root2dict(rfn, plots):
+	result = []
+	rf = ROOT.TFile(rfn)
+	for plot in plots:
+		tmp = rootobj2dict(rf.Get(plot), plot)
+		if not tmp:
+			raise
+		result.append(tmp)
+	return result
 
 def writeHistoEx(rfile, fn, plot):
 	try:
@@ -242,23 +290,6 @@ def writeHistoEx(rfile, fn, plot):
 	except:
 		pass
 	obj = rfile.Get(plot.replace(".npz", ""))
-	try:
-		objclass = obj.ClassName()
-	except:
-		objclass = "Not found"
-	if objclass.startswith("TH1"):
-		histo = TH1DWrapper(obj)
-		numpy.savez(fn, x=histo.x(), xe=histo.xe(), y=histo.y(), ye=histo.ye())
-	elif objclass.startswith("TH2"):
-		histo = TH2DWrapper(obj)
-		numpy.savez(fn, x=histo.x_low(), y=histo.y_low(), z=histo.z())
-	elif objclass.startswith("TProfile"):
-		obj.SetErrorOption("S")
-		histo = TProfileWrapper(obj)
-		numpy.savez(fn, x=histo.x(), xe=histo.xe(), y=histo.y(), ye=histo.ye())
-	elif objclass.startswith("TGraph"):
-		histo = TGraphWrapper(obj)
-		numpy.savez(fn, x=histo.x(), xe=[histo.xel(), histo.xeh()],
-			y=histo.y(), ye=[histo.yel(), histo.yeh()])
-	else:
-		print "Unsupported object: %s (%s)" % (plot, objclass)
+	info = rootobj2dict(obj, plot)
+	if info:
+		numpy.savez(fn, **info)
